@@ -1,0 +1,33 @@
+EDA Summary
+
+Master table rows: 1307
+Columns: 19
+Date range: 2023-03-25 to 2025-11-08
+Hotels: Azura Deluxe, Side Mare Hotel
+Duplicate (date, hotel_name) rows: 0
+Missing values in each Trends column: 78
+
+Occupancy summary by hotel:
+Azura Deluxe -> count 694, mean 82.5533, median 94.385, std 23.0493, min 0, max 103.56
+Side Mare Hotel -> count 613, mean 93.2150, median 97.813, std 14.9361, min 0, max 103.75
+
+Top same-day Pearson correlations:
+trends_turkiye_alanya_otel -> r 0.28247
+trends_turkiye_side_otel -> r 0.24992
+trends_germany_alanya_hotel -> r 0.239346
+trends_turkiye_alanya_otel_fiyatlari -> r 0.21989
+trends_netherlands_hotel_alanya -> r 0.148717
+
+Top best lagged Pearson correlations:
+trends_turkiye_side_otel at 28 days -> r 0.399829
+trends_germany_alanya_hotel at 7 days -> r 0.255002
+trends_turkiye_alanya_otel_fiyatlari at 21 days -> r 0.229107
+trends_netherlands_hotel_alanya at 28 days -> r 0.207813
+trends_turkiye_antalya_tatil at 28 days -> r 0.191652
+
+Interpretation:
+The dataset is clean enough to continue to feature engineering and modeling.
+Same-day correlations are generally weak to moderate.
+Lagged correlations are stronger than same-day correlations for several features.
+The strongest current feature is trends_turkiye_side_otel at a 28-day lag.
+UK keywords look relatively weak in the first pass.
