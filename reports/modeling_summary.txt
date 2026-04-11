@@ -1,0 +1,34 @@
+Baseline Modeling Summary
+
+Setup:
+Target: occupancy_rate
+Time-aware split: final 20 percent of unique dates used as test set
+Baseline features: hotel identity, calendar seasonality, and occupancy lags 7, 14, 28 days
+Trends model: baseline features plus top lagged Google Trends features from the EDA pass
+Top lagged Trends included:
+- trends_turkiye_side_otel_lag_28
+- trends_germany_alanya_hotel_lag_7
+- trends_turkiye_alanya_otel_fiyatlari_lag_21
+- trends_netherlands_hotel_alanya_lag_28
+- trends_turkiye_antalya_tatil_lag_28
+- trends_netherlands_alanya_hotel_lag_28
+- trends_turkiye_alanya_otel_lag_28
+- trends_netherlands_antalya_hotel_lag_28
+
+Model comparison:
+baseline_calendar_autoreg RandomForest -> train 983, test 268, MAE 3.8095, RMSE 5.8713, R2 0.9038
+baseline_calendar_autoreg Ridge -> train 983, test 268, MAE 9.4850, RMSE 14.5748, R2 0.4073
+baseline_plus_trends RandomForest -> train 891, test 240, MAE 3.1176, RMSE 4.7006, R2 0.9436
+baseline_plus_trends Ridge -> train 891, test 240, MAE 9.4307, RMSE 15.1261, R2 0.4155
+
+By-hotel performance:
+Side Mare Hotel baseline RandomForest -> RMSE 3.9074, R2 0.9532
+Azura Deluxe baseline RandomForest -> RMSE 7.3265, R2 0.8620
+Side Mare Hotel trends RandomForest -> RMSE 3.0899, R2 0.9736
+Azura Deluxe trends RandomForest -> RMSE 5.8859, R2 0.9174
+
+Interpretation:
+Best overall test RMSE was 4.7006 from baseline_plus_trends with RandomForest.
+Best baseline-only RMSE was 5.8713.
+The trends-augmented model improved RMSE by about 1.17 points.
+This suggests lagged Google Trends adds useful signal beyond hotel seasonality and recent occupancy.
