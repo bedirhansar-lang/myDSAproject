@@ -1,0 +1,28 @@
+# EDA Visualization Index
+
+This folder documents the main visual outputs used in the exploratory analysis.
+
+## Figures
+
+### 1. occupancy_over_time.png
+Shows daily occupancy rate over time for both hotels.
+Purpose: to reveal seasonality, large drops, and similarity or differences between the hotels.
+
+### 2. monthly_occupancy.png
+Shows monthly average occupancy for both hotels.
+Purpose: to make the seasonal pattern easier to read than the daily plot.
+
+### 3. top_same_day_correlations.png
+Shows the Google Trends features with the strongest same-day Pearson correlation with occupancy.
+Purpose: to identify whether any search features are directly related to same-day occupancy.
+
+### 4. top_lagged_correlations.png
+Shows the strongest lagged Google Trends features and their lag values.
+Purpose: to test whether search interest becomes more useful when shifted earlier in time.
+
+### 5. best_lag_overlay.png
+Overlays normalized occupancy with the strongest lagged Google Trends signal.
+Purpose: to visually compare whether the strongest delayed Trends feature moves in a similar pattern to occupancy.
+
+## Interpretation
+The most important visual conclusion is that lagged search features appear more useful than same-day search features. Occupancy also shows strong seasonality, which means Google Trends should be interpreted as a supporting signal rather than a full explanation by itself.
