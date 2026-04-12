@@ -1,10 +1,11 @@
 This folder is reserved for the visual outputs of the EDA stage.
 
 Current visuals created locally during the first EDA pass include:
-1. occupancy_over_time.png
+
+#1. occupancy_over_time.png
 Shows daily occupancy rate over time for both hotels. Purpose: to reveal seasonality, large drops, and similarity or differences between the hotels.
 
-2. monthly_occupancy.png
+#2. monthly_occupancy.png
 Shows monthly average occupancy for both hotels. Purpose: to make the seasonal pattern easier to read than the daily plot.
 
 3. top_same_day_correlations.png
