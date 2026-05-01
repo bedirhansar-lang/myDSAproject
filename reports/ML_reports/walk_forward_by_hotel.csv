@@ -1,0 +1,33 @@
+fold,dataset,model,hotel_name,test_rows,MAE,RMSE,R2
+1,baseline_calendar_autoreg_walk_forward,RandomForest,Side Mare Hotel,69,2.3832939602892558,3.2911423177553987,-0.30612921820573824
+1,baseline_calendar_autoreg_walk_forward,RandomForest,Azura Deluxe,69,4.327257654668142,6.868685283824884,-4.963182824850435
+1,baseline_calendar_autoreg_walk_forward,Ridge,Side Mare Hotel,69,6.533280587503492,8.508002729918282,-7.728669713633636
+1,baseline_calendar_autoreg_walk_forward,Ridge,Azura Deluxe,69,6.872041181354913,8.889724063930457,-8.988665050815136
+1,baseline_plus_trends_walk_forward,RandomForest,Side Mare Hotel,69,2.3974782885362527,3.322074808504629,-0.33079645442527394
+1,baseline_plus_trends_walk_forward,RandomForest,Azura Deluxe,69,4.11175928220853,6.628209604718367,-4.552944798326476
+1,baseline_plus_trends_walk_forward,Ridge,Side Mare Hotel,69,6.172326447959985,8.316721788701116,-7.340597559486303
+1,baseline_plus_trends_walk_forward,Ridge,Azura Deluxe,69,6.47793598100281,8.660731486713347,-8.480691982544164
+2,baseline_calendar_autoreg_walk_forward,RandomForest,Side Mare Hotel,61,10.270754379357875,12.741252156673355,0.2279881050345124
+2,baseline_calendar_autoreg_walk_forward,RandomForest,Azura Deluxe,68,12.86571082349656,18.760435359366316,0.48075490104007756
+2,baseline_calendar_autoreg_walk_forward,Ridge,Side Mare Hotel,61,11.39872882464557,14.787528477620231,-0.039898515935520296
+2,baseline_calendar_autoreg_walk_forward,Ridge,Azura Deluxe,68,17.6445417953362,26.1583544482329,-0.009502552607849157
+2,baseline_plus_trends_walk_forward,RandomForest,Side Mare Hotel,61,10.130096694655617,12.852523373317918,0.21444504000711595
+2,baseline_plus_trends_walk_forward,RandomForest,Azura Deluxe,68,12.95553538153129,18.581856516384462,0.49059314426152145
+2,baseline_plus_trends_walk_forward,Ridge,Side Mare Hotel,61,10.663622101099756,14.00548608560968,0.0671836637391956
+2,baseline_plus_trends_walk_forward,Ridge,Azura Deluxe,68,17.17335969973328,25.771045432128624,0.020170176494280767
+3,baseline_calendar_autoreg_walk_forward,RandomForest,Side Mare Hotel,68,2.566653519494385,3.5529525973215175,0.27044082892242816
+3,baseline_calendar_autoreg_walk_forward,RandomForest,Azura Deluxe,68,4.062220992787892,6.162226975655407,0.18703684926379271
+3,baseline_calendar_autoreg_walk_forward,Ridge,Side Mare Hotel,68,5.649345050031443,6.526340352822407,-1.4616206827419886
+3,baseline_calendar_autoreg_walk_forward,Ridge,Azura Deluxe,68,5.301919512488715,7.382345871524144,-0.16676731927319688
+3,baseline_plus_trends_walk_forward,RandomForest,Side Mare Hotel,68,2.636689420751025,3.6199035582838754,0.2426865063725533
+3,baseline_plus_trends_walk_forward,RandomForest,Azura Deluxe,68,3.9020238917864294,6.027769239389456,0.22212696859033787
+3,baseline_plus_trends_walk_forward,Ridge,Side Mare Hotel,68,6.230983537484074,7.433610507325816,-2.1936057288000352
+3,baseline_plus_trends_walk_forward,Ridge,Azura Deluxe,68,5.768846741979678,7.609938337426609,-0.23981747851205482
+4,baseline_calendar_autoreg_walk_forward,RandomForest,Side Mare Hotel,68,2.8924009290235038,3.8166059656342437,0.9756705538174487
+4,baseline_calendar_autoreg_walk_forward,RandomForest,Azura Deluxe,68,4.891933880084484,7.659762682002153,0.9134812478947889
+4,baseline_calendar_autoreg_walk_forward,Ridge,Azura Deluxe,68,11.913564078840428,18.01991339582818,0.5211659595513064
+4,baseline_calendar_autoreg_walk_forward,Ridge,Side Mare Hotel,68,11.371804073911465,18.0566014502053,0.4554351593275485
+4,baseline_plus_trends_walk_forward,RandomForest,Side Mare Hotel,68,2.880339001456735,3.728840032598518,0.9767766387160042
+4,baseline_plus_trends_walk_forward,RandomForest,Azura Deluxe,68,4.83015367683215,7.29943200092776,0.9214298192065059
+4,baseline_plus_trends_walk_forward,Ridge,Azura Deluxe,68,9.928028008311527,14.932046788455327,0.6712102255379976
+4,baseline_plus_trends_walk_forward,Ridge,Side Mare Hotel,68,9.674467540795213,15.19681788324832,0.6142704670271812
