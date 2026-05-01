@@ -1,3 +1,28 @@
+"""Hotel-wise normalization robustness analysis for both EDA and ML.
+
+Why this script exists:
+The project pools two different hotels. Their raw occupancy levels and
+variability are not identical. That can make pooled cross-hotel conclusions
+harder to interpret.
+
+This script therefore asks a robustness question:
+"If occupancy is normalized within each hotel, do the main pooled EDA and ML
+conclusions still look similar?"
+
+It does two things:
+1. EDA robustness
+   - recomputes same-day and lagged correlations using hotel-normalized
+     occupancy rather than raw occupancy
+2. ML robustness
+   - reruns baseline vs baseline+trends modeling with a hotel-normalized target
+   - back-transforms predictions into raw occupancy units for interpretable RMSE
+
+Important leakage rule:
+For the ML target normalization, hotel means/stds are computed from the TRAIN
+period only and then applied to both train and test. This avoids leaking future
+information into the training stage.
+"""
+
 import math
 from pathlib import Path
 
@@ -13,6 +38,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 
+# Repository-relative output locations.
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = REPO_ROOT / 'reports'
 MODEL_DIR = REPO_ROOT / 'model_outputs'
@@ -24,8 +50,10 @@ ROBUST_DIR.mkdir(exist_ok=True)
 
 # -----------------------------------------------------------------------------
 # Helpers to discover files even if the repo layout changes slightly.
+# This makes the script easier to reuse after small directory reorganizations.
 # -----------------------------------------------------------------------------
 def find_first_existing(candidates):
+    """Return the first path that exists from a list of candidate paths."""
     for path in candidates:
         if path.exists():
             return path
@@ -33,6 +61,11 @@ def find_first_existing(candidates):
 
 
 def find_master_table_path():
+    """Locate the master table file.
+
+    The script first checks a few expected locations. If none are found, it
+    performs a broader recursive search inside the repository.
+    """
     explicit_candidates = [
         REPO_ROOT / 'hotel_master_table.xlsx',
         REPO_ROOT / 'data' / 'hotel_master_table.xlsx',
@@ -61,6 +94,7 @@ def find_master_table_path():
 
 
 def find_best_lag_path():
+    """Locate the EDA output that ranks the best lagged trend features."""
     explicit_candidates = [
         REPO_ROOT / 'eda_outputs' / 'best_lag_correlations.csv',
         REPO_ROOT / 'outputs' / 'best_lag_correlations.csv',
@@ -86,6 +120,7 @@ def find_best_lag_path():
 # Loading and feature construction.
 # -----------------------------------------------------------------------------
 def load_master_table():
+    """Load the merged hotel + trends master table and standardize its date type."""
     master_path = find_master_table_path()
     if master_path.suffix.lower() == '.xlsx':
         try:
@@ -104,6 +139,7 @@ def load_master_table():
 
 
 def add_calendar_and_lags(df):
+    """Add calendar seasonality features and occupancy autoregressive lags."""
     out = df.copy()
     out['month'] = out['date'].dt.month
     out['day_of_week'] = out['date'].dt.dayofweek
@@ -112,12 +148,14 @@ def add_calendar_and_lags(df):
     out['doy_sin'] = np.sin(2 * np.pi * out['day_of_year'] / 365.25)
     out['doy_cos'] = np.cos(2 * np.pi * out['day_of_year'] / 365.25)
 
+    # Each lag is computed within hotel so the sequence does not mix properties.
     for lag in [7, 14, 28]:
         out[f'occupancy_lag_{lag}'] = out.groupby('hotel_name')['occupancy_rate'].shift(lag)
     return out
 
 
 def add_selected_trend_lags(df):
+    """Create lagged trend features using the top feature-lag pairs from EDA."""
     out = df.copy()
     lag_path = find_best_lag_path()
     best = pd.read_csv(lag_path)
@@ -141,6 +179,11 @@ def add_selected_trend_lags(df):
 # EDA robustness using hotel-wise normalized occupancy.
 # -----------------------------------------------------------------------------
 def add_hotelwise_zscore(df):
+    """Normalize occupancy inside each hotel using that hotel's full-sample mean/std.
+
+    This version is used only for descriptive EDA robustness.
+    For ML target normalization, we use train-only statistics later.
+    """
     out = df.copy()
     stats = out.groupby('hotel_name')['occupancy_rate'].agg(['mean', 'std']).rename(
         columns={'mean': 'hotel_occ_mean', 'std': 'hotel_occ_std'}
@@ -151,6 +194,11 @@ def add_hotelwise_zscore(df):
 
 
 def safe_corr(x, y):
+    """Compute correlation safely after dropping missing values.
+
+    Returns NaN if there are too few rows or if one side is constant.
+    This avoids unstable or misleading coefficients.
+    """
     valid = pd.concat([x, y], axis=1).dropna()
     if len(valid) < 10:
         return np.nan
@@ -163,6 +211,7 @@ def safe_corr(x, y):
 # Time-aware split and hotel-wise normalized target for ML robustness.
 # -----------------------------------------------------------------------------
 def time_split(data, test_frac=0.2):
+    """Temporal split: earlier dates for training, later dates for testing."""
     unique_dates = np.array(sorted(pd.to_datetime(data['date'].unique())))
     split_idx = int(len(unique_dates) * (1 - test_frac))
     split_idx = min(max(split_idx, 1), len(unique_dates) - 1)
@@ -173,6 +222,7 @@ def time_split(data, test_frac=0.2):
 
 
 def hotel_train_stats(train_df):
+    """Compute per-hotel target mean/std from the train period only."""
     stats = train_df.groupby('hotel_name')['occupancy_rate'].agg(['mean', 'std']).rename(
         columns={'mean': 'train_hotel_mean', 'std': 'train_hotel_std'}
     )
@@ -180,12 +230,17 @@ def hotel_train_stats(train_df):
 
 
 def apply_train_based_normalization(df, stats):
+    """Apply train-derived hotel normalization to a dataset.
+
+    This is the leakage-safe normalization used for the ML target.
+    """
     out = df.merge(stats, left_on='hotel_name', right_index=True, how='left').copy()
     out['target_hotel_z'] = (out['occupancy_rate'] - out['train_hotel_mean']) / out['train_hotel_std']
     return out
 
 
 def build_preprocessor(num_cols, cat_cols):
+    """Shared preprocessing for both Ridge and RandomForest comparisons."""
     num_pipe = Pipeline([
         ('imputer', SimpleImputer(strategy='median')),
         ('scaler', StandardScaler())
@@ -201,6 +256,7 @@ def build_preprocessor(num_cols, cat_cols):
 
 
 def inverse_hotelwise_z(pred_z, hotel_names, stats):
+    """Convert normalized target predictions back to raw occupancy units."""
     stats_map = stats.to_dict('index')
     pred_raw = []
     for pred, hotel in zip(pred_z, hotel_names):
@@ -211,6 +267,12 @@ def inverse_hotelwise_z(pred_z, hotel_names, stats):
 
 
 def evaluate_model(train_df, test_df, features, model, model_name, dataset_name):
+    """Fit one model on a hotel-normalized target and evaluate it.
+
+    We report:
+    - normalized-target metrics, useful for within-hotel comparability
+    - back-transformed raw-scale metrics, useful for business interpretation
+    """
     X_train = train_df[features]
     y_train = train_df['target_hotel_z']
     X_test = test_df[features]
@@ -226,7 +288,14 @@ def evaluate_model(train_df, test_df, features, model, model_name, dataset_name)
     ])
     pipe.fit(X_train, y_train)
     pred_z = pipe.predict(X_test)
-    pred_raw = inverse_hotelwise_z(pred_z, test_df['hotel_name'], test_df[['hotel_name', 'train_hotel_mean', 'train_hotel_std']].drop_duplicates().set_index('hotel_name'))
+
+    # Convert predictions back to raw occupancy so RMSE stays interpretable in the
+    # original business units of the project.
+    pred_raw = inverse_hotelwise_z(
+        pred_z,
+        test_df['hotel_name'],
+        test_df[['hotel_name', 'train_hotel_mean', 'train_hotel_std']].drop_duplicates().set_index('hotel_name')
+    )
 
     metrics = {
         'dataset': dataset_name,
@@ -243,6 +312,7 @@ def evaluate_model(train_df, test_df, features, model, model_name, dataset_name)
         'R2_raw_backtransformed': r2_score(y_test_raw, pred_raw),
     }
 
+    # Save row-level predictions for both normalized and raw-backtransformed views.
     pred_df = test_df[['date', 'hotel_name', 'occupancy_rate', 'target_hotel_z']].copy()
     pred_df['prediction_hotel_z'] = pred_z
     pred_df['prediction_raw_backtransformed'] = pred_raw
@@ -252,6 +322,10 @@ def evaluate_model(train_df, test_df, features, model, model_name, dataset_name)
 
 
 def main():
+    # -------------------------------------------------------------------------
+    # 1. Load data and engineer the same basic features as the baseline modeling
+    # script so the robustness comparison stays aligned with the original setup.
+    # -------------------------------------------------------------------------
     df, master_path = load_master_table()
     df = add_calendar_and_lags(df)
     df, lagged_trend_cols, lag_path = add_selected_trend_lags(df)
@@ -260,7 +334,13 @@ def main():
     # --------------------------
     # EDA robustness analysis
     # --------------------------
-    trend_cols = [c for c in df.columns if c.startswith('trends_') and not c.endswith(tuple(['_lag_7', '_lag_14', '_lag_21', '_lag_28']))]
+    # Keep original trend series names for pooled raw-vs-normalized correlation checks.
+    trend_cols = [
+        c for c in df.columns
+        if c.startswith('trends_') and not c.endswith(tuple(['_lag_7', '_lag_14', '_lag_21', '_lag_28']))
+    ]
+
+    # Recompute same-day correlations against both raw occupancy and hotel-z occupancy.
     same_day_rows = []
     for col in trend_cols:
         r_raw = safe_corr(df[col], df['occupancy_rate'])
@@ -273,6 +353,7 @@ def main():
         })
     same_day_df = pd.DataFrame(same_day_rows).sort_values('pearson_hotel_z', ascending=False)
 
+    # Repeat the same idea for 7/14/21/28 day lags.
     lag_rows = []
     for col in trend_cols:
         for lag in [7, 14, 21, 28]:
@@ -289,6 +370,7 @@ def main():
     lag_df = pd.DataFrame(lag_rows)
     best_lag_norm_df = lag_df.sort_values('pearson_hotel_z', ascending=False)
 
+    # Save robustness correlation tables for report use.
     same_day_df.to_csv(ROBUST_DIR / 'same_day_correlations_hotel_normalized.csv', index=False)
     lag_df.to_csv(ROBUST_DIR / 'lag_correlations_hotel_normalized.csv', index=False)
     best_lag_norm_df.head(20).to_csv(ROBUST_DIR / 'best_lag_correlations_hotel_normalized.csv', index=False)
@@ -303,20 +385,25 @@ def main():
     ]
     trend_features = baseline_features + lagged_trend_cols
 
+    # Drop rows with missing feature inputs separately for each configuration.
     baseline_df = model_df.dropna(subset=baseline_features).copy()
     trend_df = model_df.dropna(subset=trend_features).copy()
 
+    # Temporal split keeps later dates for testing.
     base_train, base_test, split_date_base = time_split(baseline_df)
     trend_train, trend_test, split_date_trend = time_split(trend_df)
 
+    # Compute hotel normalization stats on train period only.
     base_stats = hotel_train_stats(base_train)
     trend_stats = hotel_train_stats(trend_train)
 
+    # Apply the leakage-safe hotel normalization to each split.
     base_train = apply_train_based_normalization(base_train, base_stats).dropna(subset=['target_hotel_z'])
     base_test = apply_train_based_normalization(base_test, base_stats).dropna(subset=['target_hotel_z'])
     trend_train = apply_train_based_normalization(trend_train, trend_stats).dropna(subset=['target_hotel_z'])
     trend_test = apply_train_based_normalization(trend_test, trend_stats).dropna(subset=['target_hotel_z'])
 
+    # Same two-model benchmark as the main baseline modeling script.
     models = [
         ('Ridge', Ridge(alpha=1.0)),
         ('RandomForest', RandomForestRegressor(
@@ -335,6 +422,7 @@ def main():
             results.append(metrics)
             preds_all.append(pred_df)
 
+            # Save RandomForest feature importance in the robustness setting too.
             if model_name == 'RandomForest':
                 prep = pipe.named_steps['prep']
                 rf = pipe.named_steps['model']
@@ -351,9 +439,11 @@ def main():
     results_df = pd.DataFrame(results).sort_values(['dataset', 'RMSE_raw_backtransformed'])
     preds_df = pd.concat(preds_all, ignore_index=True)
 
+    # Save pooled comparison tables and row-level predictions.
     results_df.to_csv(ROBUST_DIR / 'model_comparison_hotel_normalized_target.csv', index=False)
     preds_df.to_csv(ROBUST_DIR / 'test_predictions_hotel_normalized_target.csv', index=False)
 
+    # Also evaluate performance separately by hotel.
     by_hotel_rows = []
     for (dataset, model_name), g in preds_df.groupby(['dataset', 'model']):
         for hotel, hg in g.groupby('hotel_name'):
@@ -372,6 +462,7 @@ def main():
     by_hotel_df = pd.DataFrame(by_hotel_rows).sort_values(['dataset', 'model', 'RMSE_raw_backtransformed'])
     by_hotel_df.to_csv(ROBUST_DIR / 'model_comparison_by_hotel_hotel_normalized_target.csv', index=False)
 
+    # Plot the best hotel-normalized trends model in raw occupancy units.
     best_row = results_df[results_df['dataset'] == 'baseline_plus_trends_hotel_z_target'].sort_values('RMSE_raw_backtransformed').iloc[0]
     best_preds = preds_df[
         (preds_df['dataset'] == best_row['dataset']) &
@@ -395,6 +486,7 @@ def main():
     # --------------------------
     # Compact text summary for the report folder.
     # --------------------------
+    # This report is designed to be directly reusable in the final write-up.
     summary_lines = []
     summary_lines.append('# Hotel-wise Normalization Robustness Summary')
     summary_lines.append('')
