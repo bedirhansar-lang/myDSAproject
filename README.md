@@ -29,9 +29,11 @@ Because these hotels are not driven only by direct B2C demand and also rely heav
 | Occupancy seasonality | **Strongly present** in both hotels |
 | Same-day Google Trends relationships | **Weak to moderate** |
 | Lagged Google Trends relationships | **Stronger and more promising** |
-| Strongest signal identified so far | `trends_turkiye_side_otel` at **28 days** |
+| Strongest lagged signal in EDA | `trends_turkiye_side_otel` at **28 days** |
 | Country / keyword differences | **Meaningful differences exist**; Türkiye and Germany are often stronger than many UK features |
-| ML baseline vs baseline+trends | **Lagged Google Trends improved performance**, but seasonality and past occupancy remain dominant |
+| First-pass ML | **Lagged Google Trends improved performance**, but seasonality and past occupancy remained dominant |
+| Fair same-window ML | **Trends still improved performance** on the same rows and same test period |
+| Walk-forward validation | **Average improvement remained positive but modest**, with variability across folds |
 
 ### Hypothesis Summary
 
@@ -87,18 +89,24 @@ myDSAproject/
 │   ├── EDA_detailed_report.ipynb
 │   └── Visualizations/
 │
-├── scripts/
-│   ├── eda_first_pass.py
-│   ├── modeling_baseline.py
-│   └── hotel_normalization_robustness_commented.py
+├── ML/
+│   └── ML_detailed_report.ipynb
 │
-├── reports/
-│   ├── eda_summary.txt
-│   ├── modeling_summary.txt
-│   └── hotel_normalization_robustness_summary.md
+├── scripts/
+│   ├── modeling_baseline_commented.py
+│   ├── hotel_normalization_robustness_commented.py
+│   ├── modeling_fair_comparison_commented.py
+│   └── modeling_walk_forward_commented.py
 │
 ├── model_outputs/
-│   └── hotel_normalization_robustness/
+│   ├── baseline_ml/
+│   ├── hotel_normalization_robustness/
+│   ├── fair_same_window_comparison/
+│   └── walk_forward_validation/
+│
+├── reports/
+│   ├── EDA_Reports/
+│   └── ML_reports/
 │
 └── README.md
 ```
@@ -148,70 +156,141 @@ Used normalization:
 
 `occupancy_rate_hotel_z = (occupancy_rate - hotel_mean) / hotel_std`
 
-This robustness layer is intended to make cross-hotel conclusions more defensible by separating:
-- genuine **within-hotel movement**,
-- from simple **between-hotel level differences**.
+Additional robustness visuals:
+
+![Same-Day Robustness Comparison](EDA/Visualizations/hotelwise_normalization_same_day_compare_small.png)
+*Same-day correlations under raw occupancy vs hotel-wise normalized occupancy.*
+
+![Lagged Robustness Comparison](EDA/Visualizations/hotelwise_normalization_lagged_compare.png)
+*Best lagged correlations under raw occupancy vs hotel-wise normalized occupancy.*
 
 ---
 
-## Modeling Stage
+## Machine Learning Stage
 
-After EDA, the project moved to baseline forecasting.
+The ML stage tests whether lagged Google Trends improves prediction beyond:
+- hotel identity,
+- seasonality,
+- and recent occupancy history.
 
-### Model settings compared
-1. **Baseline model** using calendar features + past occupancy
-2. **Baseline + lagged Google Trends** features
+### ML Report
+- Detailed notebook: [ML/ML_detailed_report.ipynb](ML/ML_detailed_report.ipynb)
 
-### Current modeling conclusion
-The model with lagged Google Trends performed better than the baseline-only model, suggesting that Google Trends adds useful signal. However, **seasonality and past occupancy remain the dominant drivers** of predictive performance.
+### Models used
+- **Ridge Regression**
+- **Random Forest Regressor**
 
-### Main modeling scripts and outputs
-- Baseline modeling script: [scripts/modeling_baseline.py](scripts/modeling_baseline.py)
-- Modeling summary: [reports/modeling_summary.txt](reports/modeling_summary.txt)
-- Model comparison table: [reports/model_comparison.csv](reports/model_comparison.csv)
-- Hotel-level comparison table: [reports/model_comparison_by_hotel.csv](reports/model_comparison_by_hotel.csv)
+### Validation design used across the project
+1. **First-pass temporal holdout**  
+2. **Hotel-wise normalization robustness**  
+3. **Fair same-window comparison**  
+4. **Walk-forward validation**
 
----
-
-## Robustness Analysis
-
-A separate robustness analysis was added to address the concern that the two hotels operate at different occupancy levels.
-
-### Robustness script
+### Main ML scripts
+- [scripts/modeling_baseline_commented.py](scripts/modeling_baseline_commented.py)
 - [scripts/hotel_normalization_robustness_commented.py](scripts/hotel_normalization_robustness_commented.py)
+- [scripts/modeling_fair_comparison_commented.py](scripts/modeling_fair_comparison_commented.py)
+- [scripts/modeling_walk_forward_commented.py](scripts/modeling_walk_forward_commented.py)
 
-### What it does
-- recomputes pooled EDA correlations using hotel-normalized occupancy,
-- reruns baseline vs baseline+trends ML comparison with a hotel-normalized target,
-- back-transforms predictions into raw occupancy units for interpretable RMSE comparison.
+---
 
-### Robustness outputs
-- Summary report: [reports/hotel_normalization_robustness_summary.md](reports/hotel_normalization_robustness_summary.md)
-- Output folder: [model_outputs/hotel_normalization_robustness/](model_outputs/hotel_normalization_robustness/)
+## First-Pass ML Result
+
+The first-pass ML comparison used a time-aware holdout split.
+
+Main conclusion:
+- best baseline-only RMSE: **approximately 5.87**
+- best baseline + Trends RMSE: **approximately 4.80**
+
+This suggested that lagged Google Trends added useful predictive information, although seasonality and past occupancy remained the dominant drivers.
+
+### First-pass prediction plots
+
+![Azura Deluxe First-Pass Prediction](model_outputs/baseline_ml/actual_vs_pred_azura_deluxe.png)
+*Actual vs predicted occupancy for Azura Deluxe under the best first-pass trends-augmented model.*
+
+![Side Mare Hotel First-Pass Prediction](model_outputs/baseline_ml/actual_vs_pred_side_mare_hotel.png)
+*Actual vs predicted occupancy for Side Mare Hotel under the best first-pass trends-augmented model.*
+
+---
+
+## ML Robustness with Hotel-wise Normalized Target
+
+A second ML pass used a hotel-wise normalized target to test whether the value of Trends might simply reflect level differences between the two hotels.
+
+Main conclusion:
+- best baseline-only RMSE after back-transformation: **approximately 6.19**
+- best baseline + Trends RMSE after back-transformation: **approximately 5.67**
+
+This supported the view that lagged Google Trends retains some value even after controlling for hotel-specific scale differences.
+
+### Robustness prediction plots
+
+![Azura Deluxe Hotel-normalized Prediction](model_outputs/hotel_normalization_robustness/actual_vs_pred_hotel_z_azura_deluxe.png)
+*Back-transformed prediction plot for Azura Deluxe under the hotel-normalized robustness specification.*
+
+![Side Mare Hotel Hotel-normalized Prediction](model_outputs/hotel_normalization_robustness/actual_vs_pred_hotel_z_side_mare_hotel.png)
+*Back-transformed prediction plot for Side Mare Hotel under the hotel-normalized robustness specification.*
+
+---
+
+## Fair Same-Window Comparison
+
+The first-pass comparison still allowed the baseline and baseline + Trends models to be built on slightly different non-missing datasets. To fix this, a fair same-window comparison was added.
+
+This version forces both model settings to use:
+- the **same rows**,
+- and the **same future test period**.
+
+Main conclusion:
+- best baseline-only RMSE: **4.974**
+- best baseline + Trends RMSE: **4.798**
+
+This is methodologically cleaner than the first-pass comparison and still supports a positive contribution from lagged Google Trends.
+
+### Fair same-window prediction plots
+
+![Azura Deluxe Fair Same-Window Prediction](model_outputs/fair_same_window_comparison/actual_vs_pred_same_window_azura_deluxe.png)
+*Actual vs predicted occupancy for Azura Deluxe under the fair same-window trends model.*
+
+![Side Mare Hotel Fair Same-Window Prediction](model_outputs/fair_same_window_comparison/actual_vs_pred_same_window_side_mare_hotel.png)
+*Actual vs predicted occupancy for Side Mare Hotel under the fair same-window trends model.*
+
+---
+
+## Walk-Forward Validation
+
+To move beyond a single holdout, the project also uses **expanding-window walk-forward validation**.
+
+This means the model is repeatedly trained on earlier dates and tested on the next future block. The goal is to check whether the Trends contribution remains useful across several future periods rather than only one final split.
+
+Main conclusion:
+- best baseline-only mean RMSE across folds: **8.166**
+- best baseline + Trends mean RMSE across folds: **8.035**
+
+So the average improvement from Trends remained **positive but modest**, while performance varied across folds.
+
+### Walk-forward visuals
+
+![Walk-Forward RMSE by Fold](model_outputs/walk_forward_validation/walk_forward_rmse_by_fold.png)
+*Fold-by-fold RMSE comparison for baseline and trends-augmented models.*
+
+![Walk-Forward Mean RMSE Summary](model_outputs/walk_forward_validation/walk_forward_mean_rmse_summary.png)
+*Average RMSE across walk-forward folds.*
 
 ---
 
 ## Interpretation
 
-The project’s current evidence supports a cautious but useful conclusion:
+The project’s current evidence supports a careful but useful conclusion:
 
 - Google Trends is **not strong enough to fully explain occupancy on its own**,
 - same-day search activity is **too weak** to be treated as a direct demand proxy,
-- but selected **lagged Google Trends features** appear to provide meaningful incremental information,
-- especially when interpreted as **early intent signals** rather than immediate booking signals.
+- selected **lagged Google Trends features** appear to provide useful incremental information,
+- this signal survives stricter checks such as hotel-wise normalization and fair same-window comparison,
+- and under walk-forward validation the gain remains **positive on average**, but more modest and less stable across time.
 
 This is consistent with the business structure of resort hotels in the region, where a substantial part of demand is mediated through **agencies and tour operators**.
-
----
-
-## Next Steps
-
-The next phase of the project focuses on:
-- refined feature selection,
-- stronger time-series validation,
-- comparison of more interpretable ML models,
-- possible inclusion of one additional external dataset,
-- clearer final presentation of academic and business conclusions.
 
 ---
 
@@ -219,13 +298,16 @@ The next phase of the project focuses on:
 
 To reproduce the project:
 
-1. Open the repository
-2. Use the master table in `data/master/hotel_master_table.xlsx`
-3. Run the scripts in `scripts/`
-4. Review outputs in `reports/`, `EDA/Visualizations/`, and `model_outputs/`
+1. Open the repository.
+2. Use the master table in `data/master/hotel_master_table.xlsx`.
+3. Run the modeling scripts in `scripts/`.
+4. Review outputs in `EDA/Visualizations/`, `model_outputs/`, and `reports/`.
+5. Read the narrative reports in:
+   - `EDA/EDA_detailed_report.ipynb`
+   - `ML/ML_detailed_report.ipynb`
 
 ---
 
-## Project Status
+## Current Status
 
-**Current status:** EDA completed, baseline ML completed, hotel-wise normalization robustness analysis added, README converted into a presentation-style repository overview.
+**Current status:** EDA completed, first-pass ML completed, hotel-normalized robustness completed, fair same-window comparison added, walk-forward validation added, and repository structure updated to separate EDA and ML outputs.
