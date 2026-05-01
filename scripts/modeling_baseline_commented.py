@@ -63,6 +63,41 @@ df['doy_cos'] = np.cos(2 * np.pi * df['day_of_year'] / 365.25)
 for lag in [7, 14, 28]:
     df[f'occupancy_lag_{lag}'] = df.groupby('hotel_name')['occupancy_rate'].shift(lag)
 
+
+def add_date_level_trend_lags(df, ranked_lags):
+    """Create lagged Google Trends features from date-level unique series.
+
+    Important correctness rule:
+    Google Trends variables are date-level signals shared across hotels. They must
+    be shifted on a unique date table first and then merged back by date.
+    Performing a raw `.shift()` on the hotel-date modeling table would mix hotel
+    blocks together and create incorrect lag alignment.
+    """
+    out = df.copy()
+
+    base_trend_cols = [
+        c for c in ranked_lags['feature'].dropna().unique().tolist()
+        if c in out.columns
+    ]
+    trend_date_df = out[['date'] + base_trend_cols].drop_duplicates('date').sort_values('date').reset_index(drop=True)
+
+    lagged_trend_cols = []
+    for _, row in ranked_lags.iterrows():
+        feat = row['feature']
+        lag = int(row['lag_days'])
+        if feat not in trend_date_df.columns:
+            continue
+        new_col = f'{feat}_lag_{lag}'
+        if new_col not in trend_date_df.columns:
+            trend_date_df[new_col] = trend_date_df[feat].shift(lag)
+        lagged_trend_cols.append(new_col)
+
+    lagged_trend_cols = list(dict.fromkeys(lagged_trend_cols))
+    if lagged_trend_cols:
+        out = out.merge(trend_date_df[['date'] + lagged_trend_cols], on='date', how='left')
+    return out, lagged_trend_cols
+
+
 # -----------------------------------------------------------------------------
 # 4. Add the strongest lagged Google Trends features discovered during EDA.
 # The EDA stage produced a ranked file of feature-lag combinations. Here we keep
@@ -70,16 +105,7 @@ for lag in [7, 14, 28]:
 # -----------------------------------------------------------------------------
 best = pd.read_csv(BASE_DIR / 'eda_outputs' / 'best_lag_correlations.csv')
 top_best = best.head(8).copy()
-lagged_trend_cols = []
-for _, row in top_best.iterrows():
-    feat = row['feature']
-    lag = int(row['lag_days'])
-    new_col = f'{feat}_lag_{lag}'
-    df[new_col] = df[feat].shift(lag)
-    lagged_trend_cols.append(new_col)
-
-# Remove duplicate names just in case the EDA file contains repeated selections.
-lagged_trend_cols = list(dict.fromkeys(lagged_trend_cols))
+df, lagged_trend_cols = add_date_level_trend_lags(df, top_best)
 
 # Keep only rows with a defined target.
 model_df = df.dropna(subset=['occupancy_rate']).copy()
