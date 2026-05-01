@@ -154,24 +154,44 @@ def add_calendar_and_lags(df):
     return out
 
 
+def build_date_level_lagged_trends(df, ranked_lags):
+    """Build lagged Google Trends features on unique dates, then merge back.
+
+    Trend variables are shared by all hotels on a given date. Therefore their lags
+    must be computed on a unique date-level table first. A direct `.shift()` on the
+    hotel-date table would misalign values across hotel blocks.
+    """
+    out = df.copy()
+    base_trend_cols = [
+        c for c in ranked_lags['feature'].dropna().unique().tolist()
+        if c in out.columns
+    ]
+    trend_date_df = out[['date'] + base_trend_cols].drop_duplicates('date').sort_values('date').reset_index(drop=True)
+
+    lagged_trend_cols = []
+    for _, row in ranked_lags.iterrows():
+        feat = row['feature']
+        lag = int(row['lag_days'])
+        if feat not in trend_date_df.columns:
+            continue
+        new_col = f'{feat}_lag_{lag}'
+        if new_col not in trend_date_df.columns:
+            trend_date_df[new_col] = trend_date_df[feat].shift(lag)
+        lagged_trend_cols.append(new_col)
+
+    lagged_trend_cols = list(dict.fromkeys(lagged_trend_cols))
+    if lagged_trend_cols:
+        out = out.merge(trend_date_df[['date'] + lagged_trend_cols], on='date', how='left')
+    return out, lagged_trend_cols
+
+
 def add_selected_trend_lags(df):
     """Create lagged trend features using the top feature-lag pairs from EDA."""
     out = df.copy()
     lag_path = find_best_lag_path()
     best = pd.read_csv(lag_path)
     top_best = best.head(8).copy()
-
-    lagged_trend_cols = []
-    for _, row in top_best.iterrows():
-        feat = row['feature']
-        lag = int(row['lag_days'])
-        if feat not in out.columns:
-            continue
-        new_col = f'{feat}_lag_{lag}'
-        out[new_col] = out[feat].shift(lag)
-        lagged_trend_cols.append(new_col)
-
-    lagged_trend_cols = list(dict.fromkeys(lagged_trend_cols))
+    out, lagged_trend_cols = build_date_level_lagged_trends(out, top_best)
     return out, lagged_trend_cols, lag_path
 
 
@@ -337,7 +357,7 @@ def main():
     # Keep original trend series names for pooled raw-vs-normalized correlation checks.
     trend_cols = [
         c for c in df.columns
-        if c.startswith('trends_') and not c.endswith(tuple(['_lag_7', '_lag_14', '_lag_21', '_lag_28']))
+        if c.startswith('trends_') and '_lag_' not in c
     ]
 
     # Recompute same-day correlations against both raw occupancy and hotel-z occupancy.
@@ -353,13 +373,17 @@ def main():
         })
     same_day_df = pd.DataFrame(same_day_rows).sort_values('pearson_hotel_z', ascending=False)
 
-    # Repeat the same idea for 7/14/21/28 day lags.
+    # Repeat the same idea for 7/14/21/28 day lags using unique date-level trend
+    # series, then merge back by date so hotel blocks are not mixed during shift.
+    trend_date_df = df[['date'] + trend_cols].drop_duplicates('date').sort_values('date').reset_index(drop=True)
     lag_rows = []
     for col in trend_cols:
         for lag in [7, 14, 21, 28]:
-            shifted = df[col].shift(lag)
-            r_raw = safe_corr(shifted, df['occupancy_rate'])
-            r_norm = safe_corr(shifted, df['occupancy_rate_hotel_z'])
+            lagged_date_df = trend_date_df[['date', col]].copy()
+            lagged_date_df[col] = lagged_date_df[col].shift(lag)
+            merged = df[['date', 'occupancy_rate', 'occupancy_rate_hotel_z']].merge(lagged_date_df, on='date', how='left')
+            r_raw = safe_corr(merged[col], merged['occupancy_rate'])
+            r_norm = safe_corr(merged[col], merged['occupancy_rate_hotel_z'])
             lag_rows.append({
                 'feature': col,
                 'lag_days': lag,
