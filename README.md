@@ -31,9 +31,10 @@ Because these hotels are not driven only by direct B2C demand and also rely heav
 | Lagged Google Trends relationships | **Stronger and more promising** |
 | Strongest lagged signal in EDA | `trends_turkiye_side_otel` at **28 days** |
 | Country / keyword differences | **Meaningful differences exist**; Türkiye and Germany are often stronger than many UK features |
-| First-pass ML | **Lagged Google Trends improved performance**, but seasonality and past occupancy remained dominant |
-| Fair same-window ML | **Trends still improved performance** on the same rows and same test period |
-| Walk-forward validation | **Average improvement remained positive but modest**, with variability across folds |
+| First-pass learned ML | **Lagged Google Trends improved learned-model performance**, but seasonality and past occupancy remained dominant |
+| Fair same-window learned ML | **Trends still improved learned-model performance** on the same rows and same test period |
+| Walk-forward learned ML | **Average improvement remained positive but modest**, with variability across folds |
+| Naive benchmark comparison | **NaivePersistence outperformed all learned models** |
 
 ### Hypothesis Summary
 
@@ -96,13 +97,15 @@ myDSAproject/
 │   ├── modeling_baseline_commented.py
 │   ├── hotel_normalization_robustness_commented.py
 │   ├── modeling_fair_comparison_commented.py
-│   └── modeling_walk_forward_commented.py
+│   ├── modeling_walk_forward_commented.py
+│   └── modeling_naive_benchmarks_commented.py
 │
 ├── model_outputs/
 │   ├── baseline_ml/
 │   ├── hotel_normalization_robustness/
 │   ├── fair_same_window_comparison/
-│   └── walk_forward_validation/
+│   ├── walk_forward_validation/
+│   └── naive_benchmark_comparison/
 │
 ├── reports/
 │   ├── EDA_Reports/
@@ -176,41 +179,47 @@ The ML stage tests whether lagged Google Trends improves prediction beyond:
 ### ML Report
 - Detailed notebook: [ML/ML_detailed_report.ipynb](ML/ML_detailed_report.ipynb)
 
-### Models used
+### Learned models used
 - **Ridge Regression**
 - **Random Forest Regressor**
+
+### Rule-based benchmarks used
+- **NaivePersistence**
+- **SeasonalNaive7**
 
 ### Validation design used across the project
 1. **First-pass temporal holdout**  
 2. **Hotel-wise normalization robustness**  
 3. **Fair same-window comparison**  
-4. **Walk-forward validation**
+4. **Walk-forward validation**  
+5. **Naive benchmark comparison**
 
 ### Main ML scripts
 - [scripts/modeling_baseline_commented.py](scripts/modeling_baseline_commented.py)
 - [scripts/hotel_normalization_robustness_commented.py](scripts/hotel_normalization_robustness_commented.py)
 - [scripts/modeling_fair_comparison_commented.py](scripts/modeling_fair_comparison_commented.py)
 - [scripts/modeling_walk_forward_commented.py](scripts/modeling_walk_forward_commented.py)
+- [scripts/modeling_naive_benchmarks_commented.py](scripts/modeling_naive_benchmarks_commented.py)
 
 ---
 
-## First-Pass ML Result
+## First-Pass Learned ML Result
 
 The first-pass ML comparison used a time-aware holdout split.
 
-Main conclusion:
+Main learned-model conclusion:
 - best baseline-only RMSE: **approximately 5.87**
 - best baseline + Trends RMSE: **approximately 4.80**
 
-This suggested that lagged Google Trends added useful predictive information, although seasonality and past occupancy remained the dominant drivers.
+This showed that lagged Google Trends added useful predictive information **within the learned-model comparison**, although seasonality and past occupancy remained the dominant drivers.
 
 ### First-pass prediction plots
 
 ![Azura Deluxe First-Pass Prediction](model_outputs/baseline_ml/actual_vs_pred_azura_deluxe.png)
-*Actual vs predicted occupancy for Azura Deluxe under the best first-pass trends-augmented model.*
+*Actual vs predicted occupancy for Azura Deluxe under the best first-pass trends-augmented learned model.*
 
 ![Side Mare Hotel First-Pass Prediction](model_outputs/baseline_ml/actual_vs_pred_side_mare_hotel.png)
-*Actual vs predicted occupancy for Side Mare Hotel under the best first-pass trends-augmented model.*
+*Actual vs predicted occupancy for Side Mare Hotel under the best first-pass trends-augmented learned model.*
 
 ---
 
@@ -218,7 +227,7 @@ This suggested that lagged Google Trends added useful predictive information, al
 
 A second ML pass used a hotel-wise normalized target to test whether the value of Trends might simply reflect level differences between the two hotels.
 
-Main conclusion:
+Main learned-model robustness conclusion:
 - best baseline-only RMSE after back-transformation: **approximately 6.19**
 - best baseline + Trends RMSE after back-transformation: **approximately 5.67**
 
@@ -238,15 +247,15 @@ This supported the view that lagged Google Trends retains some value even after 
 
 The first-pass comparison still allowed the baseline and baseline + Trends models to be built on slightly different non-missing datasets. To fix this, a fair same-window comparison was added.
 
-This version forces both model settings to use:
+This version forces both learned model settings to use:
 - the **same rows**,
 - and the **same future test period**.
 
-Main conclusion:
+Main learned-model conclusion:
 - best baseline-only RMSE: **4.974**
 - best baseline + Trends RMSE: **4.798**
 
-This is methodologically cleaner than the first-pass comparison and still supports a positive contribution from lagged Google Trends.
+This is methodologically cleaner than the first-pass comparison and still supports a positive contribution from lagged Google Trends **inside the learned-model framework**.
 
 ### Fair same-window prediction plots
 
@@ -262,9 +271,9 @@ This is methodologically cleaner than the first-pass comparison and still suppor
 
 To move beyond a single holdout, the project also uses **expanding-window walk-forward validation**.
 
-This means the model is repeatedly trained on earlier dates and tested on the next future block. The goal is to check whether the Trends contribution remains useful across several future periods rather than only one final split.
+This means the learned model is repeatedly trained on earlier dates and tested on the next future block. The goal is to check whether the Trends contribution remains useful across several future periods rather than only one final split.
 
-Main conclusion:
+Main learned-model conclusion:
 - best baseline-only mean RMSE across folds: **8.166**
 - best baseline + Trends mean RMSE across folds: **8.035**
 
@@ -273,24 +282,56 @@ So the average improvement from Trends remained **positive but modest**, while p
 ### Walk-forward visuals
 
 ![Walk-Forward RMSE by Fold](model_outputs/walk_forward_validation/walk_forward_rmse_by_fold.png)
-*Fold-by-fold RMSE comparison for baseline and trends-augmented models.*
+*Fold-by-fold RMSE comparison for baseline and trends-augmented learned models.*
 
 ![Walk-Forward Mean RMSE Summary](model_outputs/walk_forward_validation/walk_forward_mean_rmse_summary.png)
-*Average RMSE across walk-forward folds.*
+*Average RMSE across walk-forward folds for the learned models.*
+
+---
+
+## Naive Benchmark Comparison
+
+The most important final ML check was to compare the learned models against simple time-series benchmark rules.
+
+### Fair same-window benchmark result
+- **NaivePersistence RMSE: 4.068**
+- **SeasonalNaive7 RMSE: 7.808**
+- best learned model (`baseline_plus_trends / RandomForest`) RMSE: **4.798**
+
+### Walk-forward benchmark result
+- **NaivePersistence mean RMSE: 4.170**
+- **SeasonalNaive7 mean RMSE: 8.350**
+- best learned model (`baseline_plus_trends / RandomForest`) mean RMSE: **8.035**
+
+This is the most important modeling conclusion in the repository:
+
+> Lagged Google Trends improves the learned models, but the current ML pipeline still does **not beat NaivePersistence**.
+
+### Naive benchmark visuals
+
+![Fair Same-Window with Naive Benchmarks](model_outputs/naive_benchmark_comparison/same_window_rmse_with_naive_benchmarks.png)
+*Fair same-window RMSE comparison including rule-based benchmarks.*
+
+![Walk-Forward RMSE with Naive Benchmarks](model_outputs/naive_benchmark_comparison/walk_forward_rmse_with_naive_benchmarks.png)
+*Fold-by-fold RMSE comparison including rule-based benchmarks.*
+
+![Walk-Forward Mean RMSE with Naive Benchmarks](model_outputs/naive_benchmark_comparison/walk_forward_mean_rmse_with_naive_benchmarks.png)
+*Average RMSE across walk-forward folds including rule-based benchmarks.*
 
 ---
 
 ## Interpretation
 
-The project’s current evidence supports a careful but useful conclusion:
+The project’s current evidence supports a careful and more limited conclusion than a simple ML improvement story:
 
 - Google Trends is **not strong enough to fully explain occupancy on its own**,
 - same-day search activity is **too weak** to be treated as a direct demand proxy,
-- selected **lagged Google Trends features** appear to provide useful incremental information,
-- this signal survives stricter checks such as hotel-wise normalization and fair same-window comparison,
-- and under walk-forward validation the gain remains **positive on average**, but more modest and less stable across time.
+- selected **lagged Google Trends features** do provide useful incremental information,
+- this signal survives stricter learned-model checks such as hotel-wise normalization, fair same-window comparison, and walk-forward validation,
+- but the current learned models still **do not outperform NaivePersistence**,
+- so daily occupancy forecasting remains strongly dominated by short-run persistence.
 
-This is consistent with the business structure of resort hotels in the region, where a substantial part of demand is mediated through **agencies and tour operators**.
+This is consistent with the business structure of resort hotels in the region, where a substantial part of demand is mediated through **agencies and tour operators**, and where occupancy itself is highly continuous from one day to the next.
 
 ---
 
@@ -310,4 +351,4 @@ To reproduce the project:
 
 ## Current Status
 
-**Current status:** EDA completed, first-pass ML completed, hotel-normalized robustness completed, fair same-window comparison added, walk-forward validation added, and repository structure updated to separate EDA and ML outputs.
+**Current status:** EDA completed, first-pass learned ML completed, hotel-normalized robustness completed, fair same-window comparison added, walk-forward validation added, naive benchmark comparison added, and final ML interpretation revised accordingly.
