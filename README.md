@@ -6,15 +6,15 @@
 
 ---
 
-## Project Overview
+## 1. Project Overview
 
-This project investigates whether **Google Trends** can help explain and later predict **daily hotel occupancy rates** for resort hotels in the Antalya/Alanya region of Türkiye.
+This project investigates whether **Google Trends** can help explain and predict **daily hotel occupancy rates** for resort hotels in the Antalya/Alanya region of Türkiye.
 
 The project combines:
 - daily hotel occupancy data from **Side Mare Hotel** and **Azura Deluxe**,
 - tourism-related Google Trends data collected from **Germany**, **Netherlands**, **United Kingdom**, and **Türkiye**.
 
-Because these hotels are not driven only by direct B2C demand and also rely heavily on **B2B channels** such as tour operators and travel agencies, Google Trends is not treated as a perfect booking proxy. Instead, it is evaluated as a possible **early signal of travel intent**.
+Because these hotels are not driven only by direct B2C demand and also rely heavily on **B2B channels** such as tour operators and travel agencies, Google Trends is not treated as a direct booking proxy. Instead, it is evaluated as a possible **early signal of travel intent**.
 
 ### Central Question
 
@@ -22,7 +22,29 @@ Because these hotels are not driven only by direct B2C demand and also rely heav
 
 ---
 
-## Main Findings
+## 2. Why This Project Fits the Course Well
+
+Within the DSA210 framing you uploaded, a strong project should have a **unique dataset**, a **novel idea or hypothesis**, and should combine **exploration, inference, prediction, and communication** rather than just applying software mechanically. fileciteturn132file0L1-L1
+
+This repository fits that structure well because it includes:
+- a real-world hotel occupancy dataset,
+- a clear hypothesis-driven question about Google Trends,
+- detailed EDA and visualization,
+- inference through correlation and lag analysis,
+- prediction through progressively improved ML evaluation,
+- and explicit communication of limitations.
+
+The course material on model evaluation also emphasizes that what matters is performance on **unseen data**, along with proper splitting, avoidance of leakage, and comparison against **baseline models**. fileciteturn132file1L1-L1
+
+This repo reflects that progression through:
+- first-pass temporal holdout,
+- fair same-window comparison,
+- walk-forward validation,
+- and naive benchmark comparison.
+
+---
+
+## 3. Main Findings
 
 | Finding | Result |
 |---|---|
@@ -34,7 +56,7 @@ Because these hotels are not driven only by direct B2C demand and also rely heav
 | First-pass learned ML | **Lagged Google Trends improved learned-model performance**, but seasonality and past occupancy remained dominant |
 | Fair same-window learned ML | **Trends still improved learned-model performance** on the same rows and same test period |
 | Walk-forward learned ML | **Average improvement remained positive but modest**, with variability across folds |
-| Naive benchmark comparison | **NaivePersistence outperformed all learned models** |
+| Final benchmark check | **NaivePersistence outperformed all learned models** |
 
 ### Hypothesis Summary
 
@@ -45,9 +67,17 @@ Because these hotels are not driven only by direct B2C demand and also rely heav
 | H3: Relationship strength depends on country and keyword | **Supported** |
 | H4: Occupancy has strong seasonal structure | **Supported** |
 
+### Final ML Conclusion
+
+The final ML conclusion is intentionally cautious:
+
+> Lagged Google Trends improves the learned models, but the current ML pipeline does **not** outperform the strongest simple benchmark, **NaivePersistence**.
+
+So the project supports Google Trends as a **supporting external signal**, not as a dominant forecasting driver.
+
 ---
 
-## Data
+## 4. Data
 
 ### Hotel Data
 - **Side Mare Hotel**
@@ -77,7 +107,7 @@ The merged analytical dataset has:
 
 ---
 
-## Repository Structure
+## 5. Repository Structure
 
 ```text
 myDSAproject/
@@ -116,9 +146,9 @@ myDSAproject/
 
 ---
 
-## Exploratory Data Analysis
+## 6. Exploratory Data Analysis
 
-The EDA phase established the project’s core structure before moving to modeling.
+The EDA phase established the project’s structure before modeling.
 
 Main EDA steps:
 - data quality checks,
@@ -169,7 +199,7 @@ Additional robustness visuals:
 
 ---
 
-## Machine Learning Stage
+## 7. Machine Learning Stage
 
 The ML stage tests whether lagged Google Trends improves prediction beyond:
 - hotel identity,
@@ -203,17 +233,46 @@ The ML stage tests whether lagged Google Trends improves prediction beyond:
 
 ---
 
-## First-Pass Learned ML Result
+## 8. ML Result Ladder
 
-The first-pass ML comparison used a time-aware holdout split.
+This repo contains several ML result layers. They should be interpreted in this order:
 
-Main learned-model conclusion:
+### 8.1 First-pass learned-model result
 - best baseline-only RMSE: **approximately 5.87**
 - best baseline + Trends RMSE: **approximately 4.80**
 
-This showed that lagged Google Trends added useful predictive information **within the learned-model comparison**, although seasonality and past occupancy remained the dominant drivers.
+This showed that lagged Google Trends improved the learned models.
 
-### First-pass prediction plots
+### 8.2 Hotel-normalized robustness result
+- best baseline-only RMSE after back-transformation: **approximately 6.19**
+- best baseline + Trends RMSE after back-transformation: **approximately 5.67**
+
+This suggested that the gain is not only due to cross-hotel level differences.
+
+### 8.3 Fair same-window result
+- best baseline-only RMSE: **4.974**
+- best baseline + Trends RMSE: **4.798**
+
+This confirmed that the learned-model gain remains when both models are tested on the same rows and same future window.
+
+### 8.4 Walk-forward result
+- best baseline-only mean RMSE across folds: **8.166**
+- best baseline + Trends mean RMSE across folds: **8.035**
+
+This showed that the gain remains positive on average, but modest and less stable across time.
+
+### 8.5 Final naive benchmark result
+- **NaivePersistence RMSE: 4.068** on the fair same-window comparison
+- **NaivePersistence mean RMSE: 4.170** in walk-forward validation
+- best learned model (`baseline_plus_trends / RandomForest`) remained worse than this benchmark in both settings
+
+This is the final reason why the ML conclusion must remain limited.
+
+---
+
+## 9. Key ML Visualizations
+
+### First-pass learned-model plots
 
 ![Azura Deluxe First-Pass Prediction](model_outputs/baseline_ml/actual_vs_pred_azura_deluxe.png)
 *Actual vs predicted occupancy for Azura Deluxe under the best first-pass trends-augmented learned model.*
@@ -221,19 +280,7 @@ This showed that lagged Google Trends added useful predictive information **with
 ![Side Mare Hotel First-Pass Prediction](model_outputs/baseline_ml/actual_vs_pred_side_mare_hotel.png)
 *Actual vs predicted occupancy for Side Mare Hotel under the best first-pass trends-augmented learned model.*
 
----
-
-## ML Robustness with Hotel-wise Normalized Target
-
-A second ML pass used a hotel-wise normalized target to test whether the value of Trends might simply reflect level differences between the two hotels.
-
-Main learned-model robustness conclusion:
-- best baseline-only RMSE after back-transformation: **approximately 6.19**
-- best baseline + Trends RMSE after back-transformation: **approximately 5.67**
-
-This supported the view that lagged Google Trends retains some value even after controlling for hotel-specific scale differences.
-
-### Robustness prediction plots
+### Hotel-normalized robustness plots
 
 ![Azura Deluxe Hotel-normalized Prediction](model_outputs/hotel_normalization_robustness/actual_vs_pred_hotel_z_azura_deluxe.png)
 *Back-transformed prediction plot for Azura Deluxe under the hotel-normalized robustness specification.*
@@ -241,43 +288,13 @@ This supported the view that lagged Google Trends retains some value even after 
 ![Side Mare Hotel Hotel-normalized Prediction](model_outputs/hotel_normalization_robustness/actual_vs_pred_hotel_z_side_mare_hotel.png)
 *Back-transformed prediction plot for Side Mare Hotel under the hotel-normalized robustness specification.*
 
----
-
-## Fair Same-Window Comparison
-
-The first-pass comparison still allowed the baseline and baseline + Trends models to be built on slightly different non-missing datasets. To fix this, a fair same-window comparison was added.
-
-This version forces both learned model settings to use:
-- the **same rows**,
-- and the **same future test period**.
-
-Main learned-model conclusion:
-- best baseline-only RMSE: **4.974**
-- best baseline + Trends RMSE: **4.798**
-
-This is methodologically cleaner than the first-pass comparison and still supports a positive contribution from lagged Google Trends **inside the learned-model framework**.
-
-### Fair same-window prediction plots
+### Fair same-window plots
 
 ![Azura Deluxe Fair Same-Window Prediction](model_outputs/fair_same_window_comparison/actual_vs_pred_same_window_azura_deluxe.png)
 *Actual vs predicted occupancy for Azura Deluxe under the fair same-window trends model.*
 
 ![Side Mare Hotel Fair Same-Window Prediction](model_outputs/fair_same_window_comparison/actual_vs_pred_same_window_side_mare_hotel.png)
 *Actual vs predicted occupancy for Side Mare Hotel under the fair same-window trends model.*
-
----
-
-## Walk-Forward Validation
-
-To move beyond a single holdout, the project also uses **expanding-window walk-forward validation**.
-
-This means the learned model is repeatedly trained on earlier dates and tested on the next future block. The goal is to check whether the Trends contribution remains useful across several future periods rather than only one final split.
-
-Main learned-model conclusion:
-- best baseline-only mean RMSE across folds: **8.166**
-- best baseline + Trends mean RMSE across folds: **8.035**
-
-So the average improvement from Trends remained **positive but modest**, while performance varied across folds.
 
 ### Walk-forward visuals
 
@@ -286,26 +303,6 @@ So the average improvement from Trends remained **positive but modest**, while p
 
 ![Walk-Forward Mean RMSE Summary](model_outputs/walk_forward_validation/walk_forward_mean_rmse_summary.png)
 *Average RMSE across walk-forward folds for the learned models.*
-
----
-
-## Naive Benchmark Comparison
-
-The most important final ML check was to compare the learned models against simple time-series benchmark rules.
-
-### Fair same-window benchmark result
-- **NaivePersistence RMSE: 4.068**
-- **SeasonalNaive7 RMSE: 7.808**
-- best learned model (`baseline_plus_trends / RandomForest`) RMSE: **4.798**
-
-### Walk-forward benchmark result
-- **NaivePersistence mean RMSE: 4.170**
-- **SeasonalNaive7 mean RMSE: 8.350**
-- best learned model (`baseline_plus_trends / RandomForest`) mean RMSE: **8.035**
-
-This is the most important modeling conclusion in the repository:
-
-> Lagged Google Trends improves the learned models, but the current ML pipeline still does **not beat NaivePersistence**.
 
 ### Naive benchmark visuals
 
@@ -320,9 +317,101 @@ This is the most important modeling conclusion in the repository:
 
 ---
 
-## Interpretation
+## 10. Reproducibility and How to Run
 
-The project’s current evidence supports a careful and more limited conclusion than a simple ML improvement story:
+### Recommended Python stack
+This repository currently uses a standard Python data science setup. At minimum, the notebooks and scripts rely on:
+- `pandas`
+- `numpy`
+- `matplotlib`
+- `scikit-learn`
+- `scipy`
+- `openpyxl`
+- `jupyter`
+
+### Suggested setup
+```bash
+# clone repository
+git clone https://github.com/bedirhansar-lang/myDSAproject.git
+cd myDSAproject
+
+# create environment
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+
+# install core packages
+pip install pandas numpy matplotlib scikit-learn scipy openpyxl jupyter
+```
+
+### Suggested execution order
+1. Start with `EDA/EDA_detailed_report.ipynb`
+2. Then read `ML/ML_detailed_report.ipynb`
+3. If you want to reproduce outputs from scripts, run them in this order:
+   - `modeling_baseline_commented.py`
+   - `hotel_normalization_robustness_commented.py`
+   - `modeling_fair_comparison_commented.py`
+   - `modeling_walk_forward_commented.py`
+   - `modeling_naive_benchmarks_commented.py`
+
+---
+
+## 11. Comparison with the Example Repositories
+
+Compared with the example repos you shared, this repository is now strong in:
+- **stepwise project evolution** rather than a single one-shot model,
+- **honest reporting of weaker results**, especially the naive benchmark result,
+- **separation of EDA and ML reports**,
+- and **clear output folders for each validation stage**.
+
+Compared with the stronger parts of those examples, this repo is still weaker in a few polish areas:
+- there is **no dedicated `requirements.txt` or environment file yet**, while strong repos often include one,
+- there is **no single master results summary table** across all ML stages,
+- and there is still some duplication between notebooks, CSV outputs, and the README.
+
+The two example repos are also strong in slightly different ways:
+- the chess repo is especially good at **clear storytelling and actionable interpretation**,
+- the Simla repo is especially good at **rich README structure, reproducibility cues, and explicit methodology layout**.
+
+This repo is now closer to them structurally, but still has a little cleanup left before it feels equally polished. fileciteturn126file0L1-L1 fileciteturn127file0L1-L1
+
+---
+
+## 12. Current Limitations and Remaining Problems
+
+These are the most important remaining issues in the project.
+
+### 12.1 NaivePersistence is still stronger than all learned models
+This is the main modeling limitation. It means the project currently demonstrates **incremental learned-model improvement**, but not **best overall forecasting performance**.
+
+### 12.2 The target is highly persistence-dominated
+Daily occupancy appears to be strongly driven by short-run continuity. This makes the prediction problem harder for external signals such as Google Trends.
+
+### 12.3 Walk-forward performance is unstable
+The walk-forward results vary across folds, so the learned-model gains are not equally strong in all future periods.
+
+### 12.4 Reproducibility setup is not fully polished yet
+The repo is reproducible in practice, but it still lacks:
+- a dedicated `requirements.txt`,
+- a strict environment specification,
+- and a single command or script runner for the full pipeline.
+
+### 12.5 Some report consolidation is still needed
+The repo now has good stage separation, but it would still benefit from one concise final summary table that combines:
+- EDA result highlights,
+- learned-model comparison,
+- robustness result,
+- same-window result,
+- walk-forward result,
+- and naive benchmark result.
+
+### 12.6 The README is strong now, but still depends on linked files
+The README now tells the project story more clearly, but the full picture still depends on the notebooks and output folders. A final poster-style one-page summary or results dashboard would make the repo even stronger.
+
+---
+
+## 13. Final Interpretation
+
+The project’s current evidence supports a careful and limited conclusion:
 
 - Google Trends is **not strong enough to fully explain occupancy on its own**,
 - same-day search activity is **too weak** to be treated as a direct demand proxy,
@@ -331,24 +420,10 @@ The project’s current evidence supports a careful and more limited conclusion 
 - but the current learned models still **do not outperform NaivePersistence**,
 - so daily occupancy forecasting remains strongly dominated by short-run persistence.
 
-This is consistent with the business structure of resort hotels in the region, where a substantial part of demand is mediated through **agencies and tour operators**, and where occupancy itself is highly continuous from one day to the next.
+This is consistent with the business structure of resort hotels in the region, where a substantial part of demand is mediated through **agencies and tour operators**.
 
 ---
 
-## Reproducibility
+## 14. Current Status
 
-To reproduce the project:
-
-1. Open the repository.
-2. Use the master table in `data/master/hotel_master_table.xlsx`.
-3. Run the modeling scripts in `scripts/`.
-4. Review outputs in `EDA/Visualizations/`, `model_outputs/`, and `reports/`.
-5. Read the narrative reports in:
-   - `EDA/EDA_detailed_report.ipynb`
-   - `ML/ML_detailed_report.ipynb`
-
----
-
-## Current Status
-
-**Current status:** EDA completed, first-pass learned ML completed, hotel-normalized robustness completed, fair same-window comparison added, walk-forward validation added, naive benchmark comparison added, and final ML interpretation revised accordingly.
+**Current status:** EDA completed, first-pass learned ML completed, hotel-normalized robustness completed, fair same-window comparison added, walk-forward validation added, naive benchmark comparison added, and the final ML interpretation revised accordingly.
