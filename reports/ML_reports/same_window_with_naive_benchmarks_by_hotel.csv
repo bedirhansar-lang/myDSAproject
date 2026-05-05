@@ -1,0 +1,13 @@
+dataset,model,hotel_name,test_rows,MAE,RMSE,R2
+baseline_calendar_autoreg_same_window,RandomForest,Side Mare Hotel,110,2.365295728060277,3.111361660656254,0.9752727602827054
+baseline_plus_trends_same_window,RandomForest,Side Mare Hotel,110,2.4539471789791305,3.157361226436094,0.9745362014337252
+NaivePersistence,RuleBased,Side Mare Hotel,110,2.542590909090909,3.9916463008274032,0.9593014674372041
+NaivePersistence,RuleBased,Azura Deluxe,110,2.899545454545454,4.143043786659974,0.9620991337396476
+baseline_plus_trends_same_window,RandomForest,Azura Deluxe,110,3.8752622437516058,6.132721549559309,0.9169544085308987
+baseline_calendar_autoreg_same_window,RandomForest,Azura Deluxe,110,3.9437823243351287,6.309242405465761,0.9121049298640612
+baseline_plus_trends_same_window,Ridge,Azura Deluxe,110,7.465143850445664,12.997398725091209,0.6269878535577271
+baseline_plus_trends_same_window,Ridge,Side Mare Hotel,110,7.384711347822209,13.079368303884719,0.5630334568432822
+baseline_calendar_autoreg_same_window,Ridge,Azura Deluxe,110,8.694582223415665,14.357640991294724,0.5448272341393865
+baseline_calendar_autoreg_same_window,Ridge,Side Mare Hotel,110,9.036727368116463,14.59631489305101,0.45579679467075407
+SeasonalNaive7,RuleBased,Azura Deluxe,110,7.783454545454544,16.12215488642316,0.4260735131155833
+SeasonalNaive7,RuleBased,Side Mare Hotel,110,7.0142454545454545,17.279236632707214,0.23735267427682716
