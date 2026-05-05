@@ -4,7 +4,7 @@ Why this script exists:
 The ML modeling scripts save their original outputs under model_outputs/...
 The ML report reads clean, report-ready copies from:
 - ML/Figures/
-- ML/Naive_Benchmark/
+- ML/Figures/Naive_Benchmark/
 
 Running this script after the ML scripts copies the generated PNG files into the
 folders used by ML/ML_detailed_report.ipynb. This makes the report figures
@@ -18,7 +18,7 @@ import shutil
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 REPORT_FIGURES_DIR = REPO_ROOT / "ML" / "Figures"
-REPORT_NAIVE_DIR = REPO_ROOT / "ML" / "Naive_Benchmark"
+REPORT_NAIVE_DIR = REPORT_FIGURES_DIR / "Naive_Benchmark"
 
 REPORT_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 REPORT_NAIVE_DIR.mkdir(parents=True, exist_ok=True)
