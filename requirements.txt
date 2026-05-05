@@ -1,0 +1,17 @@
+# Core data analysis
+pandas
+numpy
+scipy
+
+# Excel file support
+openpyxl
+
+# Visualization
+matplotlib
+
+# Machine learning
+scikit-learn
+
+# Notebook/report workflow
+jupyter
+tabulate
