@@ -28,17 +28,57 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
-# Base directory where local project inputs/outputs are stored.
-BASE_DIR = Path('/mnt/data')
+# Base directory is the repository root, not a machine-specific path.
+# This allows the script to run on Windows, macOS, Linux, and GitHub clones.
+BASE_DIR = Path(__file__).resolve().parents[1]
 OUT_DIR = BASE_DIR / 'model_outputs'
-OUT_DIR.mkdir(exist_ok=True)
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+REPORTS_DIR = BASE_DIR / 'reports' / 'ML_reports'
+REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def find_master_table():
+    """Find the master hotel table in common repository locations."""
+    candidates = [
+        BASE_DIR / 'data' / 'master' / 'hotel_master_table.xlsx',
+        BASE_DIR / 'data' / 'hotel_master_table.xlsx',
+        BASE_DIR / 'hotel_master_table.xlsx',
+    ]
+    for path in candidates:
+        if path.exists():
+            return path
+    matches = list(BASE_DIR.glob('**/hotel_master_table.xlsx'))
+    if matches:
+        return matches[0]
+    raise FileNotFoundError('Could not find hotel_master_table.xlsx in the repository.')
+
+
+def find_best_lag_path():
+    """Find the EDA file containing the best lagged Google Trends correlations."""
+    candidates = [
+        BASE_DIR / 'eda_outputs' / 'best_lag_correlations.csv',
+        BASE_DIR / 'outputs' / 'best_lag_correlations.csv',
+        BASE_DIR / 'reports' / 'best_lag_correlations.csv',
+        BASE_DIR / 'best_lag_correlations.csv',
+    ]
+    for path in candidates:
+        if path.exists():
+            return path
+    matches = list(BASE_DIR.glob('**/best_lag_correlations.csv'))
+    if matches:
+        return matches[0]
+    raise FileNotFoundError('Could not find best_lag_correlations.csv in the repository.')
+
+
+MASTER_TABLE_PATH = find_master_table()
+BEST_LAG_PATH = find_best_lag_path()
 
 # -----------------------------------------------------------------------------
 # 1. Load the master table and sort it properly for time-based feature creation.
 # Sorting by hotel and then date is essential because lag features must always be
 # created within each hotel's own timeline.
 # -----------------------------------------------------------------------------
-df = pd.read_excel(BASE_DIR / 'hotel_master_table.xlsx', sheet_name='master_table')
+df = pd.read_excel(MASTER_TABLE_PATH, sheet_name='master_table')
 df['date'] = pd.to_datetime(df['date'])
 df = df.sort_values(['hotel_name', 'date']).reset_index(drop=True)
 
@@ -103,7 +143,7 @@ def add_date_level_trend_lags(df, ranked_lags):
 # The EDA stage produced a ranked file of feature-lag combinations. Here we keep
 # only the top 8 rows as a compact first-pass feature set.
 # -----------------------------------------------------------------------------
-best = pd.read_csv(BASE_DIR / 'eda_outputs' / 'best_lag_correlations.csv')
+best = pd.read_csv(BEST_LAG_PATH)
 top_best = best.head(8).copy()
 df, lagged_trend_cols = add_date_level_trend_lags(df, top_best)
 
@@ -283,6 +323,10 @@ results_df.to_csv(OUT_DIR / 'model_comparison.csv', index=False)
 by_hotel_df.to_csv(OUT_DIR / 'model_comparison_by_hotel.csv', index=False)
 preds_df.to_csv(OUT_DIR / 'test_predictions.csv', index=False)
 
+# Also save report copies so the notebook can display the same tables.
+results_df.to_csv(REPORTS_DIR / 'model_comparison.csv', index=False)
+by_hotel_df.to_csv(REPORTS_DIR / 'model_comparison_by_hotel.csv', index=False)
+
 # -----------------------------------------------------------------------------
 # 10. Plot actual vs predicted values for the best trends-augmented model.
 # This gives an intuitive visual check beyond the metric tables.
@@ -343,3 +387,4 @@ summary_lines.append(f"- RMSE difference (baseline - trends): **{delta:.3f}**. P
 summary_lines.append('- This is still a first-pass result. It tests whether lagged Google Trends adds incremental signal beyond hotel seasonality and recent occupancy.')
 
 (OUT_DIR / 'modeling_summary.md').write_text('\n'.join(summary_lines), encoding='utf-8')
+(REPORTS_DIR / 'modeling_summary.md').write_text('\n'.join(summary_lines), encoding='utf-8')
