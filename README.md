@@ -169,7 +169,7 @@ Naive benchmarks were added to provide a practical reference point. In time-seri
 
 ## Explicit Metric Improvement Summary
 
-The final phase feedback emphasized that the repository should state **explicitly** whether Google Trends features improved predictive metrics. The answer is **yes inside the learned-model framework**.
+To make the contribution of Google Trends fully transparent, the repository reports the metric change between the **baseline learned model** and the **baseline + lagged Google Trends learned model** at each main validation stage.
 
 ### Learned-model comparisons: without Trends vs with Trends
 
@@ -183,16 +183,16 @@ These results show that **adding lagged Google Trends improved the learned model
 
 ### Final benchmark check
 
-However, the final benchmark comparison changes the interpretation of those gains:
+However, the benchmark comparison changes how those gains should be interpreted:
 
 | Comparison | Best learned model RMSE | NaivePersistence RMSE |
 |---|---:|---:|
 | Fair same-window | 4.798 | 4.068 |
 | Walk-forward mean | 8.035 | 4.170 |
 
-So the final answer is more specific than a simple “yes”:
+This leads to a two-part conclusion:
 - **Yes:** Google Trends improved the learned models relative to the no-Trends learned baseline.
-- **No:** The current learned models still did **not** beat the strongest simple benchmark, **NaivePersistence**.
+- **No:** The current learned models still did **not** outperform the strongest simple benchmark, **NaivePersistence**.
 
 ---
 
@@ -219,20 +219,25 @@ The main findings are:
 myDSAproject/
 │
 ├── Data/
-│   └── Cleaned and standardized hotel / Google Trends datasets
+│   ├── Hotel Data/
+│   ├── Google Trends/
+│   └── Master Tables/
 │
 ├── EDA/
 │   ├── EDA_detailed_report.ipynb
 │   └── Visualizations/
-│       └── EDA figures
 │
 ├── ML/
 │   ├── ML_detailed_report.ipynb
 │   ├── FIGURE_REPRODUCIBILITY.md
 │   └── Figures/
-│       ├── Model result figures
 │       └── Naive_Benchmark/
-│           └── Naive benchmark comparison figures
+│
+├── model_outputs/
+│   ├── hotel_normalization_robustness/
+│   ├── fair_same_window_comparison/
+│   ├── walk_forward_validation/
+│   └── naive_benchmark_comparison/
 │
 ├── reports/
 │   ├── EDA_reports/
@@ -293,16 +298,13 @@ python -m notebook
 
 ## Final Conclusion
 
-The final conclusion of the project is now explicit:
+The final modeling evidence supports a measured conclusion.
 
-> Lagged Google Trends features **did improve the learned models’ metrics** relative to the no-Trends learned baseline in the first-pass, fair same-window, and walk-forward comparisons.
->
-> However, the best learned models still **did not outperform NaivePersistence**, which means that daily occupancy forecasting in this dataset remains strongly dominated by short-run persistence.
+Lagged Google Trends features **consistently improved the learned models’ RMSE** relative to the no-Trends learned baseline across the first-pass holdout, the fair same-window comparison, and the walk-forward validation setup.
 
-So the most defensible interpretation is:
-- Google Trends has **real but limited predictive value**,
-- it works best as an **early supporting signal**,
-- and it should be combined with seasonality and past occupancy rather than treated as the main driver of forecasts.
+At the same time, the strongest learned configuration still **did not outperform NaivePersistence**. This indicates that daily occupancy in this dataset is driven primarily by short-run continuity, while Google Trends contributes a smaller, secondary layer of useful information.
+
+Accordingly, the most defensible interpretation of the project is that Google Trends has **real but limited predictive value**. It is most useful as an **early supporting indicator** that complements seasonality and past occupancy, rather than as the main driver of the forecasting system.
 
 ---
 
