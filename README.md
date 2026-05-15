@@ -167,6 +167,35 @@ Naive benchmarks were added to provide a practical reference point. In time-seri
 
 ---
 
+## Explicit Metric Improvement Summary
+
+The final phase feedback emphasized that the repository should state **explicitly** whether Google Trends features improved predictive metrics. The answer is **yes inside the learned-model framework**.
+
+### Learned-model comparisons: without Trends vs with Trends
+
+| Comparison | Best baseline RMSE | Best baseline + Trends RMSE | RMSE improvement from Trends |
+|---|---:|---:|---:|
+| First-pass holdout | 5.87 | 4.80 | 1.07 |
+| Fair same-window | 4.974 | 4.798 | 0.176 |
+| Walk-forward mean | 8.166 | 8.035 | 0.131 |
+
+These results show that **adding lagged Google Trends improved the learned models in every main learned-model comparison**.
+
+### Final benchmark check
+
+However, the final benchmark comparison changes the interpretation of those gains:
+
+| Comparison | Best learned model RMSE | NaivePersistence RMSE |
+|---|---:|---:|
+| Fair same-window | 4.798 | 4.068 |
+| Walk-forward mean | 8.035 | 4.170 |
+
+So the final answer is more specific than a simple “yes”:
+- **Yes:** Google Trends improved the learned models relative to the no-Trends learned baseline.
+- **No:** The current learned models still did **not** beat the strongest simple benchmark, **NaivePersistence**.
+
+---
+
 ## Key Findings
 
 The main findings are:
@@ -176,9 +205,11 @@ The main findings are:
 - Lagged Google Trends features are more promising than same-day Trends values.
 - Some Türkiye and Germany search keywords appear more informative than many UK-based keywords.
 - Calendar features and past occupancy remain the strongest predictors.
-- Adding lagged Google Trends can improve learned model performance in some comparisons.
-- However, naive persistence remains a strong benchmark, especially under walk-forward validation.
-- Therefore, Google Trends should be interpreted as a possible supporting signal, not as a standalone predictor of hotel occupancy.
+- Adding lagged Google Trends improved learned-model RMSE from **5.87 to 4.80** in the first-pass setup.
+- Under the fair same-window comparison, adding lagged Google Trends improved RMSE from **4.974 to 4.798**.
+- Under walk-forward validation, adding lagged Google Trends improved mean RMSE from **8.166 to 8.035**.
+- However, **NaivePersistence** remained stronger than all learned models.
+- Therefore, Google Trends should be interpreted as a **supporting signal** rather than a standalone or dominant predictor of hotel occupancy.
 
 ---
 
@@ -257,6 +288,21 @@ If `jupyter` is not recognized directly, use:
 ```bash
 python -m notebook
 ```
+
+---
+
+## Final Conclusion
+
+The final conclusion of the project is now explicit:
+
+> Lagged Google Trends features **did improve the learned models’ metrics** relative to the no-Trends learned baseline in the first-pass, fair same-window, and walk-forward comparisons.
+>
+> However, the best learned models still **did not outperform NaivePersistence**, which means that daily occupancy forecasting in this dataset remains strongly dominated by short-run persistence.
+
+So the most defensible interpretation is:
+- Google Trends has **real but limited predictive value**,
+- it works best as an **early supporting signal**,
+- and it should be combined with seasonality and past occupancy rather than treated as the main driver of forecasts.
 
 ---
 
