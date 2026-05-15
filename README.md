@@ -71,7 +71,7 @@ The project follows a full data science pipeline:
 8. Walk-forward validation
 9. Hotel-wise normalization robustness check
 10. Naive benchmark comparison
-11. Interpretation and limitations
+11. Interpretation and conclusion
 
 ---
 
@@ -303,19 +303,6 @@ So the most defensible interpretation is:
 - Google Trends has **real but limited predictive value**,
 - it works best as an **early supporting signal**,
 - and it should be combined with seasonality and past occupancy rather than treated as the main driver of forecasts.
-
----
-
-## Limitations
-
-This project has several important limitations:
-
-- Only two hotels are included, so the results should not be generalized to all Antalya hotels.
-- Google Trends values are relative search interest scores, not actual search counts.
-- Resort hotels depend heavily on tour operators and agencies, so online search behavior may only partially reflect demand.
-- Some Google Trends keywords have sparse or noisy data.
-- Occupancy is highly seasonal and autocorrelated, making naive persistence difficult to beat.
-- The analysis focuses on interpretable undergraduate-level modeling rather than advanced production forecasting.
 
 ---
 
